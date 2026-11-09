@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFFFFF">
+<title>Visita guidata</title>
+<style>
+  @font-face { font-family: "Roboto Condensed"; src: url("/fonts/roboto-condensed-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "Roboto Condensed"; src: url("/fonts/roboto-condensed-latin-500-normal.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+  @font-face { font-family: "Roboto Condensed"; src: url("/fonts/roboto-condensed-latin-700-normal.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+  :root {
+    --brand: #E4002B;          /* sovrascritto da colorePrincipale in config.json */
+    --on-brand: #FFFFFF;
+    --paper: #EDECE8;          /* grigio caldo dello sfondo di openparts.it */
+    --surface: #FFFFFF;
+    --ink: #1C1C1A;
+    --steel: #6A6964;
+    --line: #D3D1CA;
+    --warn: #E39B00;
+    --alert-text: var(--brand);
+    --shadow: 0 1px 6px rgba(0, 0, 0, .12);
+    color-scheme: light;
+    font-family: "Roboto Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #141413; --surface: #1F1F1D; --ink: #F1F0EC; --steel: #A6A49D; --line: #34332F;
+      --alert-text: #FF5A6E; --shadow: 0 1px 6px rgba(0, 0, 0, .5); color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #141413; --surface: #1F1F1D; --ink: #F1F0EC; --steel: #A6A49D; --line: #34332F;
+    --alert-text: #FF5A6E; --shadow: 0 1px 6px rgba(0, 0, 0, .5); color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--paper); color: var(--ink); display: flex; flex-direction: column;
+    padding-bottom: env(safe-area-inset-bottom, 0px); -webkit-tap-highlight-color: transparent;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  button:focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
+
+  /* Testata bianca con logo, come il sito */
+  .top {
+    background: #FFFFFF; box-shadow: var(--shadow); position: sticky; top: 0; z-index: 5;
+    padding: calc(env(safe-area-inset-top, 0px) + .7rem) 1.1rem .7rem;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  }
+  .top img { height: 5rem; width: auto; display: block; }
+  @media (max-height: 640px) { .top img { height: 3.8rem; } }
+  .top .brand { margin: 0; font-size: .95rem; font-weight: 700; text-transform: uppercase; letter-spacing: .02em; color: #E4002B; color: var(--brand); text-align: right; }
+
+  main { flex: 1; width: 100%; max-width: 34rem; margin: 0 auto; padding: 1.4rem 1.1rem 1rem; display: flex; flex-direction: column; }
+  .screen { display: none; flex: 1; flex-direction: column; }
+  .screen.on { display: flex; }
+
+  h1 { font-size: 2.1rem; line-height: 1.05; font-weight: 700; margin: 0 0 1.3rem; text-transform: uppercase; }
+
+  /* Scelta lingua */
+  .langs { display: grid; gap: .5rem; }
+  .lang {
+    appearance: none; background: var(--surface); border: 0; border-left: 5px solid transparent; border-radius: 2px;
+    box-shadow: var(--shadow); font-size: 1.4rem; font-weight: 500; text-align: left; padding: 1rem 1.1rem; min-height: 3.9rem;
+  }
+  .lang.last { border-left-color: var(--brand); }
+  .lang:active { background: var(--brand); color: var(--on-brand); border-left-color: var(--brand); }
+  .empty { color: var(--steel); font-size: 1.1rem; line-height: 1.5; }
+
+  /* Attesa: il faro */
+  .center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 1.1rem; }
+  .beacon { position: relative; width: 12rem; height: 12rem; }
+  .beacon span { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--brand); opacity: 0; animation: ring 2.7s ease-out infinite; }
+  .beacon span:nth-child(2) { animation-delay: .9s; }
+  .beacon span:nth-child(3) { animation-delay: 1.8s; }
+  .beacon i { position: absolute; inset: 39%; border-radius: 50%; background: var(--brand); }
+  @keyframes ring { from { transform: scale(.32); opacity: 1; } to { transform: scale(1); opacity: 0; } }
+  .waiting-title { font-size: 1.9rem; font-weight: 700; margin: 0; text-transform: uppercase; }
+  .hint { color: var(--steel); font-size: 1.1rem; line-height: 1.45; max-width: 22rem; margin: 0; }
+  .done { font-size: 1.15rem; margin: 0; min-height: 1.4em; }
+
+  .late { background: var(--surface); box-shadow: var(--shadow); border-left: 5px solid var(--brand); border-radius: 2px; padding: 1rem; width: 100%; display: none; flex-direction: column; gap: .8rem; text-align: left; }
+  .late.on { display: flex; }
+  .late p { margin: 0; font-size: 1.2rem; }
+
+  .primary {
+    appearance: none; border: 0; border-radius: 2px; background: var(--brand); color: var(--on-brand);
+    font-size: 1.25rem; font-weight: 700; text-transform: uppercase; letter-spacing: .02em; padding: 1rem 1.2rem; min-height: 3.6rem; width: 100%;
+  }
+
+  /* Riproduzione: il numero della tappa */
+  .dial { position: relative; width: min(17rem, 72vw); aspect-ratio: 1; }
+  .dial svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+  .dial circle { fill: none; stroke-width: 5; }
+  .dial .track { stroke: var(--line); }
+  .dial .fill { stroke: var(--brand); stroke-linecap: butt; transition: stroke-dashoffset .4s linear; }
+  .dial .label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .dial .word { font-size: 1.1rem; font-weight: 700; color: var(--alert-text); text-transform: uppercase; letter-spacing: .04em; }
+  .dial .num { font-size: 7.5rem; line-height: .95; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .dial .name { font-size: 1.05rem; color: var(--steel); margin-top: .35rem; max-width: 80%; }
+  .time { font-variant-numeric: tabular-nums; color: var(--steel); font-size: 1.1rem; min-height: 1.3em; margin: 0; }
+  .msg { color: var(--alert-text); font-size: 1.15rem; margin: 0; min-height: 1.3em; }
+  .controls { width: 100%; display: grid; gap: .6rem; }
+  .ghost {
+    appearance: none; background: var(--surface); border: 0; box-shadow: var(--shadow); border-radius: 2px;
+    font-size: 1.2rem; font-weight: 700; text-transform: uppercase; letter-spacing: .02em; padding: .9rem; min-height: 3.4rem; width: 100%;
+  }
+
+  /* Barra in basso */
+  footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-top: .9rem; margin-top: 1rem; border-top: 1px solid var(--line); font-size: 1.05rem; color: var(--steel); }
+  footer[hidden] { display: none; }
+  .conn { display: flex; align-items: center; gap: .45rem; }
+  .dot { width: .6rem; height: .6rem; border-radius: 50%; background: #2E9E5B; }
+  .conn.off .dot { background: var(--brand); }
+  .link { appearance: none; background: none; border: 0; padding: .5rem 0; color: var(--alert-text); font-size: 1rem; font-weight: 700; text-transform: uppercase; letter-spacing: .02em; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .beacon span { animation: none; opacity: .45; }
+    .beacon span:nth-child(2) { transform: scale(.66); }
+    .beacon span:nth-child(3) { display: none; }
+    .dial .fill { transition: none; }
+  }
+</style>
+<link rel="stylesheet" href="/tema.css">
+</head>
+<body>
+<header class="top">
+  <img src="/logo" alt="Open Parts" onerror="this.remove()">
+  <p class="brand" id="brand"></p>
+</header>
+<main>
+  <!-- 1. Scelta della lingua -->
+  <section class="screen on" id="s-lang" aria-labelledby="choose-title">
+    <h1 id="choose-title">Scegli la lingua</h1>
+    <div class="langs" id="langs"><p class="empty" id="loading">…</p></div>
+  </section>
+
+  <!-- 2. In attesa della guida -->
+  <section class="screen" id="s-wait" aria-live="polite">
+    <div class="center">
+      <div class="beacon" aria-hidden="true"><span></span><span></span><span></span><i></i></div>
+      <p class="waiting-title" data-t="waiting"></p>
+      <p class="done" id="done"></p>
+      <p class="hint" data-t="waitingHint"></p>
+      <div class="late" id="late">
+        <p id="late-text"></p>
+        <button class="primary" id="late-btn"></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Tappa in riproduzione -->
+  <section class="screen" id="s-play" aria-live="polite">
+    <div class="center">
+      <div class="dial">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="track" cx="50" cy="50" r="46"></circle>
+          <circle class="fill" id="ring" cx="50" cy="50" r="46" stroke-dasharray="289.03" stroke-dashoffset="289.03"></circle>
+        </svg>
+        <div class="label">
+          <span class="word" data-t="stop"></span>
+          <span class="num" id="num">1</span>
+          <span class="name" id="stop-name"></span>
+        </div>
+      </div>
+      <p class="time" id="time"></p>
+      <p class="msg" id="msg"></p>
+      <div class="controls">
+        <button class="primary" id="tap-btn" hidden data-t="tapToPlay"></button>
+        <button class="ghost" id="pause-btn" data-t="pause"></button>
+      </div>
+    </div>
+  </section>
+
+  <footer id="bar" hidden>
+    <span class="conn" id="conn"><span class="dot"></span><span id="lang-name"></span></span>
+    <button class="link" id="change" data-t="changeLang"></button>
+  </footer>
+</main>
+
+<audio id="player" preload="auto" playsinline></audio>
+
+<script>
+const T = {
+  it: { choose: 'Scegli la lingua', waiting: 'In attesa della guida…', waitingHint: 'Tieni lo schermo acceso e il volume alto: l’audio partirà da solo alla prossima tappa.', stop: 'Tappa', pause: 'Pausa', resume: 'Riprendi', tapToPlay: 'Tocca per ascoltare', missing: 'Questa tappa non è disponibile nella tua lingua.', changeLang: 'Cambia lingua', offline: 'Connessione persa, mi riconnetto…', late: 'La visita è alla tappa {n}.', listen: 'Ascolta la tappa {n}', done: 'Tappa {n} conclusa.', left: 'mancano {t}', none: 'Nessuna traccia audio disponibile. Avvisa la guida.', error: 'Impossibile caricare la pagina. Controlla di essere collegato al Wi-Fi del laboratorio.', guidePaused: 'In pausa: la guida riprenderà a breve.' },
+  en: { choose: 'Choose your language', waiting: 'Waiting for the guide…', waitingHint: 'Keep your screen on and the volume up: the audio will start by itself at the next stop.', stop: 'Stop', pause: 'Pause', resume: 'Resume', tapToPlay: 'Tap to listen', missing: 'This stop is not available in your language.', changeLang: 'Change language', offline: 'Connection lost, reconnecting…', late: 'The tour is at stop {n}.', listen: 'Listen to stop {n}', done: 'Stop {n} finished.', left: '{t} left', none: 'No audio tracks available. Please tell the guide.', error: 'The page could not load. Check that you are connected to the lab Wi-Fi.', guidePaused: 'Paused: the guide will resume shortly.' },
+  de: { choose: 'Sprache wählen', waiting: 'Warten auf die Führung…', waitingHint: 'Lassen Sie den Bildschirm eingeschaltet und den Ton laut: Das Audio startet beim nächsten Halt von selbst.', stop: 'Station', pause: 'Pause', resume: 'Fortsetzen', tapToPlay: 'Zum Anhören tippen', missing: 'Diese Station ist in Ihrer Sprache nicht verfügbar.', changeLang: 'Sprache ändern', offline: 'Verbindung unterbrochen, neuer Versuch…', late: 'Die Führung ist bei Station {n}.', listen: 'Station {n} anhören', done: 'Station {n} beendet.', left: 'noch {t}', none: 'Keine Audiodateien verfügbar. Bitte sagen Sie es der Führung.', error: 'Die Seite konnte nicht geladen werden. Prüfen Sie die Verbindung zum WLAN des Labors.', guidePaused: 'Pausiert: Die Führung geht gleich weiter.' },
+  fr: { choose: 'Choisissez la langue', waiting: 'En attente du guide…', waitingHint: 'Gardez l’écran allumé et le volume haut : l’audio démarrera tout seul à la prochaine étape.', stop: 'Étape', pause: 'Pause', resume: 'Reprendre', tapToPlay: 'Touchez pour écouter', missing: 'Cette étape n’est pas disponible dans votre langue.', changeLang: 'Changer de langue', offline: 'Connexion perdue, reconnexion…', late: 'La visite est à l’étape {n}.', listen: 'Écouter l’étape {n}', done: 'Étape {n} terminée.', left: 'encore {t}', none: 'Aucune piste audio disponible. Prévenez le guide.', error: 'Impossible de charger la page. Vérifiez la connexion au Wi-Fi du laboratoire.', guidePaused: 'En pause : le guide reprendra bientôt.' },
+  pt: { choose: 'Escolha o idioma', waiting: 'Aguarde o guia…', waitingHint: 'Não deixe o telefone bloquear e mantenha o volume alto: o áudio começará sozinho na próxima etapa.', stop: 'Etapa', pause: 'Pausa', resume: 'Retomar', tapToPlay: 'Toque para ouvir', missing: 'Esta etapa não está disponível no seu idioma.', changeLang: 'Mudar idioma', offline: 'Conexão interrompida, nova tentativa em curso…', late: 'A visita está na etapa {n}.', listen: 'Ouvir a etapa {n}', done: 'Etapa {n} concluída.', left: 'faltam {t}', none: 'Nenhuma faixa de áudio disponível. Avise o guia.', error: 'Não foi possível carregar a página. Verifique se está conectado ao Wi-Fi do laboratório.', guidePaused: 'Em pausa: o guia vai continuar em breve.' },
+  es: { choose: 'Elige el idioma', waiting: 'Esperando al guía…', waitingHint: 'Mantén la pantalla encendida y el volumen alto: el audio empezará solo en la próxima parada.', stop: 'Parada', pause: 'Pausa', resume: 'Reanudar', tapToPlay: 'Toca para escuchar', missing: 'Esta parada no está disponible en tu idioma.', changeLang: 'Cambiar idioma', offline: 'Conexión perdida, reconectando…', late: 'La visita está en la parada {n}.', listen: 'Escuchar la parada {n}', done: 'Parada {n} terminada.', left: 'faltan {t}', none: 'No hay pistas de audio. Avisa al guía.', error: 'No se pudo cargar la página. Comprueba la conexión al Wi-Fi del laboratorio.', guidePaused: 'En pausa: el guía continuará en breve.' }
+};
+
+const $ = id => document.getElementById(id);
+const audio = $('player');
+const RING = 289.03;
+const browserLang = (navigator.language || 'en').slice(0, 2);
+let uiLang = T[browserLang] ? browserLang : 'en';
+let cfg = null, lang = null, es = null, lastSeq = -1, gotFirstState = false;
+let current = null, pendingOffset = 0, wakeLock = null, lateState = null;
+// dove si trova la guida: tappa, secondi trascorsi, in pausa, quando l'abbiamo saputo
+let guide = { tappa: null, trascorsi: 0, inPausa: false, at: 0 };
+function guideAt(s) { guide = { tappa: s.tappa || null, trascorsi: s.trascorsi || 0, inPausa: !!s.inPausa, at: Date.now() }; }
+function guideNow() { return guide.inPausa ? guide.trascorsi : guide.trascorsi + (Date.now() - guide.at) / 1000; }
+
+function t(key, vars = {}) {
+  let s = (T[uiLang] || T.en)[key] || T.en[key] || key;
+  for (const k in vars) s = s.replace('{' + k + '}', vars[k]);
+  return s;
+}
+function applyTexts() {
+  document.documentElement.lang = uiLang;
+  document.querySelectorAll('[data-t]').forEach(el => { el.textContent = t(el.dataset.t); });
+}
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
+  $('bar').hidden = id === 's-lang';
+}
+function storeGet(k) { try { return sessionStorage.getItem(k); } catch { return null; } }
+function storeSet(k, v) { try { sessionStorage.setItem(k, v); } catch {} }
+
+// ---------- avvio ----------
+async function init() {
+  $('choose-title').textContent = t('choose');
+  try {
+    const r = await fetch('/api/config', { cache: 'no-store' });
+    cfg = await r.json();
+  } catch {
+    $('loading').textContent = t('error');
+    return;
+  }
+  document.title = cfg.titolo;
+  $('brand').textContent = cfg.titolo;
+  const box = $('langs');
+  box.innerHTML = '';
+  if (!cfg.lingue.length) {
+    const p = document.createElement('p'); p.className = 'empty'; p.textContent = t('none'); box.append(p);
+    return;
+  }
+  const last = storeGet('lingua');
+  for (const l of cfg.lingue) {
+    const b = document.createElement('button');
+    b.className = 'lang' + (l.code === last ? ' last' : '');
+    b.textContent = l.nome;
+    b.addEventListener('click', () => chooseLang(l.code));
+    box.append(b);
+  }
+}
+
+// ---------- sblocco audio: deve avvenire durante il tocco dell'ospite ----------
+function silentWav() {
+  const sr = 8000, n = 800, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  w(36, 'data'); v.setUint32(40, n * 2, true);
+  return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+}
+function unlockAudio() {
+  try {
+    const src = silentWav();
+    audio.src = src;
+    const p = audio.play();
+    if (p) p.then(() => { if (audio.src === src) audio.pause(); }).catch(() => {});
+  } catch {}
+}
+
+async function keepAwake() {
+  try {
+    if ('wakeLock' in navigator && document.visibilityState === 'visible' && !wakeLock) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    }
+  } catch { wakeLock = null; }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && lang) keepAwake(); });
+
+function chooseLang(code) {
+  unlockAudio();             // sincrono, dentro il tocco
+  lang = code;
+  uiLang = T[code.slice(0, 2)] ? code.slice(0, 2) : 'en';
+  storeSet('lingua', code);
+  applyTexts();
+  $('lang-name').textContent = cfg.lingue.find(l => l.code === code).nome;
+  $('done').textContent = '';
+  $('late').classList.remove('on');
+  show('s-wait');
+  keepAwake();
+  connect();
+}
+
+// ---------- collegamento con il telecomando ----------
+function connect() {
+  if (es) es.close();
+  lastSeq = -1; gotFirstState = false;
+  es = new EventSource('/api/eventi?lingua=' + encodeURIComponent(lang));
+  es.addEventListener('open', () => setOnline(true));
+  es.addEventListener('error', () => setOnline(false));
+
+  es.addEventListener('stato', e => {
+    const s = JSON.parse(e.data);
+    const first = !gotFirstState;
+    gotFirstState = true;
+    if (s.seq === lastSeq) return;            // riconnessione senza novità
+    lastSeq = s.seq;
+    guideAt(s);
+    if (!s.tappa) { if (!first) stopTrack(); return; }
+    if (first) offerLate(s);                   // arrivato a visita in corso: chiede un tocco
+    else playTrack(s.tappa, s.trascorsi, s.inPausa); // riconnesso: si allinea alla guida
+  });
+  es.addEventListener('play', e => {
+    const s = JSON.parse(e.data);
+    if (s.seq <= lastSeq) return;
+    lastSeq = s.seq;
+    guideAt({ tappa: s.tappa, trascorsi: 0 });
+    playTrack(s.tappa, 0);
+  });
+  es.addEventListener('pausa', e => {
+    const s = JSON.parse(e.data);
+    if (s.seq <= lastSeq) return;
+    lastSeq = s.seq;
+    guideAt({ ...s, inPausa: true });
+    if (current === s.tappa) { audio.pause(); $('msg').textContent = t('guidePaused'); }
+  });
+  es.addEventListener('riprendi', e => {
+    const s = JSON.parse(e.data);
+    if (s.seq <= lastSeq) return;
+    lastSeq = s.seq;
+    guideAt(s);
+    if (current !== s.tappa) return;
+    $('msg').textContent = '';
+    // se il telefono si è disallineato di oltre 3 secondi, torna dove è la guida
+    if (isFinite(audio.duration) && Math.abs(audio.currentTime - s.trascorsi) > 3) audio.currentTime = s.trascorsi;
+    else if (!isFinite(audio.duration)) pendingOffset = s.trascorsi;
+    audio.play().catch(() => { $('tap-btn').hidden = false; $('pause-btn').hidden = true; });
+  });
+  es.addEventListener('stop', e => {
+    const s = JSON.parse(e.data);
+    if (s.seq <= lastSeq) return;
+    lastSeq = s.seq;
+    guideAt({ tappa: null });
+    stopTrack();
+  });
+}
+function setOnline(on) {
+  $('conn').classList.toggle('off', !on);
+  if (!on) { $('msg').textContent = t('offline'); return; }
+  $('msg').textContent = current && !hasTrack(current) ? t('missing')
+    : (current && guide.inPausa && guide.tappa === current ? t('guidePaused') : '');
+}
+
+function offerLate(s) {
+  lateState = { tappa: s.tappa };
+  $('late-text').textContent = t('late', { n: s.tappa });
+  $('late-btn').textContent = t('listen', { n: s.tappa });
+  $('late').classList.add('on');
+}
+$('late-btn').addEventListener('click', () => {
+  if (!lateState) return;
+  $('late').classList.remove('on');
+  if (guide.tappa) playTrack(guide.tappa, guideNow(), guide.inPausa);
+});
+
+// ---------- riproduzione ----------
+function hasTrack(n) { const l = cfg.lingue.find(x => x.code === lang); return !!l && l.tappe.includes(n); }
+// Titolo nella lingua dell'ospite (dal nome del file), altrimenti quello di config.json
+function stopName(n) {
+  const l = cfg.lingue.find(x => x.code === lang);
+  return (l && l.titoli && l.titoli[n]) || (cfg.nomiTappe && cfg.nomiTappe[n]) || '';
+}
+
+let playId = 0;
+async function playTrack(n, offset, startPaused = false) {
+  const my = ++playId;
+  // rilegge tracce e titoli (al massimo 1,5 s di attesa, poi usa quelli già noti)
+  try {
+    const ctrl = new AbortController(); const timer = setTimeout(() => ctrl.abort(), 1500);
+    cfg = await (await fetch('/api/config', { cache: 'no-store', signal: ctrl.signal })).json();
+    clearTimeout(timer);
+  } catch {}
+  if (my !== playId) return;   // nel frattempo è arrivato un altro comando
+  current = n;
+  lateState = null;
+  $('late').classList.remove('on');
+  $('num').textContent = n;
+  $('stop-name').textContent = stopName(n);
+  $('ring').style.strokeDashoffset = RING;
+  $('time').textContent = '';
+  $('tap-btn').hidden = true;
+  $('pause-btn').hidden = false;
+  show('s-play');
+
+  if (!hasTrack(n)) {
+    audio.pause();
+    $('msg').textContent = t('missing');
+    $('pause-btn').hidden = true;
+    return;
+  }
+  $('msg').textContent = '';
+  pendingOffset = offset || 0;
+  audio.src = '/audio/' + encodeURIComponent(lang) + '/' + n;
+  if (startPaused) {
+    audio.load();
+    $('msg').textContent = t('guidePaused');
+    $('pause-btn').textContent = t('resume');
+  } else {
+    const p = audio.play();
+    if (p) p.catch(() => { $('tap-btn').hidden = false; $('pause-btn').hidden = true; });
+  }
+
+  if ('mediaSession' in navigator && window.MediaMetadata) {
+    navigator.mediaSession.metadata = new MediaMetadata({ title: t('stop') + ' ' + n + (stopName(n) ? ' – ' + stopName(n) : ''), artist: cfg.titolo });
+  }
+}
+function stopTrack() {
+  playId++;
+  audio.pause();
+  if (current) $('done').textContent = t('done', { n: current });
+  current = null;
+  show('s-wait');
+}
+
+audio.addEventListener('loadedmetadata', () => {
+  if (pendingOffset > 0 && isFinite(audio.duration)) {
+    audio.currentTime = pendingOffset < audio.duration - 2 ? pendingOffset : 0;
+  }
+  pendingOffset = 0;
+});
+audio.addEventListener('timeupdate', () => {
+  if (!current || !isFinite(audio.duration) || audio.duration === 0) return;
+  const frac = Math.min(1, audio.currentTime / audio.duration);
+  $('ring').style.strokeDashoffset = RING * (1 - frac);
+  const rest = Math.max(0, Math.round(audio.duration - audio.currentTime));
+  $('time').textContent = t('left', { t: Math.floor(rest / 60) + ':' + String(rest % 60).padStart(2, '0') });
+});
+audio.addEventListener('play', () => { if (current) { $('pause-btn').textContent = t('pause'); $('tap-btn').hidden = true; $('pause-btn').hidden = false; } });
+audio.addEventListener('pause', () => { if (current) $('pause-btn').textContent = t('resume'); });
+audio.addEventListener('ended', () => { if (current) stopTrack(); });
+
+$('tap-btn').addEventListener('click', () => { audio.play().catch(() => {}); });
+$('pause-btn').addEventListener('click', () => { if (audio.paused) audio.play().catch(() => {}); else audio.pause(); });
+$('change').addEventListener('click', () => {
+  if (es) es.close();
+  es = null; audio.pause(); current = null; lang = null;
+  uiLang = T[browserLang] ? browserLang : 'en';
+  $('choose-title').textContent = t('choose');
+  init();
+  show('s-lang');
+});
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "guida-laboratorio",
+  "version": "1.0.0",
+  "description": "Audioguida per le visite al laboratorio: QR code, scelta lingua e telecomando da tablet",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED"
+}

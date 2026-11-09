@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Regia visita</title>
+<style>
+  @font-face { font-family: "Roboto Condensed"; src: url("/fonts/roboto-condensed-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "Roboto Condensed"; src: url("/fonts/roboto-condensed-latin-500-normal.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+  @font-face { font-family: "Roboto Condensed"; src: url("/fonts/roboto-condensed-latin-700-normal.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+  :root {
+    --brand: #E4002B;          /* sovrascritto da colorePrincipale in config.json */
+    --on-brand: #FFFFFF;
+    --paper: #EDECE8;          /* grigio caldo dello sfondo di openparts.it */
+    --surface: #FFFFFF;
+    --ink: #1C1C1A;
+    --steel: #6A6964;
+    --line: #D3D1CA;
+    --warn: #E39B00;
+    --alert-text: var(--brand);
+    --shadow: 0 1px 6px rgba(0, 0, 0, .12);
+    color-scheme: light;
+    font-family: "Roboto Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #141413; --surface: #1F1F1D; --ink: #F1F0EC; --steel: #A6A49D; --line: #34332F;
+      --alert-text: #FF5A6E; --shadow: 0 1px 6px rgba(0, 0, 0, .5); color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #141413; --surface: #1F1F1D; --ink: #F1F0EC; --steel: #A6A49D; --line: #34332F;
+    --alert-text: #FF5A6E; --shadow: 0 1px 6px rgba(0, 0, 0, .5); color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--paper); color: var(--ink); display: flex; flex-direction: column;
+    padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+    -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none;
+  }
+  button, input, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
+  [hidden] { display: none !important; }
+
+  /* Testata bianca con logo, come il sito */
+  .top {
+    background: #FFFFFF; box-shadow: var(--shadow); position: sticky; top: 0; z-index: 5;
+    padding: calc(env(safe-area-inset-top, 0px) + .55rem) 1.25rem .55rem;
+    display: flex; align-items: center; gap: 1.1rem;
+  }
+  .top img { height: 4.2rem; width: auto; display: block; }
+  .top .t { margin: 0; font-size: 1.15rem; font-weight: 700; text-transform: uppercase; letter-spacing: .02em; color: #1C1C1A; }
+  .top .t span { color: var(--brand); }
+  .top .right { margin-left: auto; display: flex; align-items: center; gap: 1rem; }
+  .link { appearance: none; background: none; border: 0; padding: .5rem; color: var(--brand); font-weight: 700; text-transform: uppercase; letter-spacing: .02em; }
+
+  /* Accesso */
+  .login { flex: 1; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+  .login form { width: min(24rem, 100%); display: grid; gap: .9rem; background: var(--surface); box-shadow: var(--shadow); padding: 1.6rem; border-top: 5px solid var(--brand); }
+  .login h1 { font-size: 1.7rem; margin: 0 0 .3rem; font-weight: 700; text-transform: uppercase; }
+  .login label { color: var(--steel); }
+  .login input {
+    font-size: 1.3rem; padding: .85rem 1rem; border-radius: 2px; border: 1.5px solid var(--line);
+    background: var(--paper); -webkit-user-select: text; user-select: text;
+  }
+  .err { color: var(--alert-text); min-height: 1.3em; margin: 0; }
+
+  /* Telecomando */
+  .app { flex: 1; display: flex; flex-direction: column; padding: 1rem 1.25rem 1.25rem; gap: .9rem; }
+  .status { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .4rem 1.5rem; }
+  .guests { font-size: 1.15rem; display: flex; flex-wrap: wrap; gap: .3rem 1rem; align-items: baseline; }
+  .guests strong { font-size: 1.7rem; font-variant-numeric: tabular-nums; color: var(--alert-text); }
+  .guests .per { color: var(--steel); }
+  .now { font-size: 1.2rem; color: var(--steel); margin: 0; min-height: 1.4em; font-variant-numeric: tabular-nums; }
+  .now.live { color: var(--ink); font-weight: 500; }
+  .now.offline { color: var(--alert-text); }
+
+  .grid { flex: 1; display: grid; gap: .55rem; grid-template-columns: repeat(3, 1fr); grid-auto-rows: minmax(5.2rem, 1fr); }
+  @media (min-width: 560px) { .grid { grid-template-columns: repeat(5, 1fr); } }
+  @media (min-width: 900px) { .grid { grid-template-columns: repeat(7, 1fr); } }
+  .stop {
+    appearance: none; position: relative; border: 0; background: var(--surface); box-shadow: var(--shadow); border-radius: 2px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .15rem; padding: .4rem;
+    transition: transform .08s ease;
+  }
+  .stop:active { transform: scale(.96); }
+  .stop .n { font-size: 2.7rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+  .stop .lbl { font-size: .95rem; color: var(--steel); text-align: center; line-height: 1.15; max-width: 100%; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+  .stop .lbl:empty { display: none; }
+  .stop.on { background: var(--brand); color: var(--on-brand); }
+  .stop.on .lbl { color: var(--on-brand); }
+  .stop.sending { opacity: .55; }
+  .stop .warn { position: absolute; top: .45rem; right: .5rem; width: .6rem; height: .6rem; border-radius: 50%; background: var(--warn); }
+
+  .bottom { display: flex; flex-wrap: wrap; gap: .8rem; align-items: center; justify-content: space-between; }
+  .actions { display: flex; flex-wrap: wrap; gap: .7rem; }
+  .pause, .halt {
+    appearance: none; border-radius: 2px; font-size: 1.2rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
+    padding: .9rem 2rem; min-height: 3.6rem; min-width: 10.5rem;
+  }
+  .pause { border: 2px solid var(--ink); background: var(--surface); }
+  .pause.paused { background: var(--ink); color: var(--paper); }
+  .pause:disabled { opacity: .35; cursor: default; }
+  .halt { border: 2px solid var(--brand); color: var(--alert-text); background: var(--surface); }
+  .halt:active { background: var(--brand); color: var(--on-brand); }
+  .note { color: var(--steel); font-size: 1rem; margin: 0; }
+  .note .w { display: inline-block; width: .6rem; height: .6rem; border-radius: 50%; background: var(--warn); margin-right: .35rem; }
+
+  /* Ascolto della guida */
+  .monitor { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: .6rem 1rem; background: var(--surface); box-shadow: var(--shadow); border-radius: 2px; padding: .65rem .9rem; }
+  .listen { appearance: none; border: 2px solid var(--ink); background: transparent; border-radius: 2px; font-size: 1rem; font-weight: 700; text-transform: uppercase; letter-spacing: .02em; padding: .5rem .9rem; min-height: 2.8rem; white-space: nowrap; }
+  .listen[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+  .bar { position: relative; height: .5rem; background: var(--line); overflow: hidden; }
+  .bar i { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--brand); transition: width .3s linear; }
+  .mon-info { display: flex; align-items: center; gap: .8rem; font-variant-numeric: tabular-nums; color: var(--steel); white-space: nowrap; }
+  .mon-info select { font-size: 1rem; color: var(--ink); background: var(--paper); border: 1.5px solid var(--line); border-radius: 2px; padding: .35rem .5rem; }
+  .mon-msg { grid-column: 1 / -1; margin: 0; color: var(--alert-text); font-size: 1rem; }
+  .mon-msg:empty { display: none; }
+  @media (max-width: 560px) { .monitor { grid-template-columns: 1fr; } }
+
+  @media (prefers-reduced-motion: reduce) { .bar i { transition: none; } .stop { transition: none; } .stop:active { transform: none; } }
+</style>
+<link rel="stylesheet" href="/tema.css">
+</head>
+<body>
+<header class="top">
+  <img src="/logo" alt="Open Parts" onerror="this.remove()">
+  <p class="t"><span>Regia</span> <span id="title" style="color:inherit"></span></p>
+  <div class="right"><button class="link" id="logout" hidden>Esci</button></div>
+</header>
+
+<section class="login" id="login" hidden>
+  <form id="login-form">
+    <h1>Regia visita</h1>
+    <label for="pw">Password</label>
+    <input id="pw" type="password" autocomplete="current-password" required>
+    <button class="primary" type="submit">Entra</button>
+    <p class="err" id="login-err" role="alert"></p>
+  </form>
+</section>
+
+<section class="app" id="app" hidden>
+  <div class="status">
+    <p class="now" id="now">Nessuna tappa in riproduzione</p>
+    <div class="guests" aria-live="polite">
+      <span><strong id="count">0</strong> <span id="count-word">ospiti collegati</span></span>
+      <span class="per" id="per"></span>
+    </div>
+  </div>
+  <div class="monitor">
+    <button class="listen" id="listen" aria-pressed="false">Ascolta la traccia</button>
+    <div class="bar" aria-hidden="true"><i id="mon-bar"></i></div>
+    <div class="mon-info">
+      <span id="mon-time">--:-- / --:--</span>
+      <select id="mon-lang" aria-label="Lingua da ascoltare"></select>
+    </div>
+    <p class="mon-msg" id="mon-msg"></p>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="bottom">
+    <div class="actions">
+      <button class="pause" id="pause" disabled>Pausa</button>
+      <button class="halt" id="halt">Ferma audio</button>
+    </div>
+    <p class="note" id="note" hidden><span class="w"></span>manca la traccia in almeno una lingua: tieni premuto per vedere quale</p>
+  </div>
+</section>
+
+<audio id="mon" preload="auto" playsinline muted></audio>
+
+<script>
+const $ = id => document.getElementById(id);
+let cfg = null, status = null, pollTimer = null, wakeLock = null, sending = false;
+
+async function api(path, body) {
+  const r = await fetch(path, {
+    method: body ? 'POST' : 'GET',
+    headers: body ? { 'Content-Type': 'application/json' } : {},
+    body: body ? JSON.stringify(body) : undefined,
+    credentials: 'same-origin', cache: 'no-store'
+  });
+  if (r.status === 401) { showLogin(); throw new Error('auth'); }
+  if (!r.ok) throw new Error('http ' + r.status);
+  return r.json();
+}
+
+function showLogin() {
+  clearInterval(pollTimer);
+  if (typeof monEs !== 'undefined' && monEs) { monEs.close(); monEs = null; monLangs = []; mon.pause(); }
+  $('app').hidden = true;
+  $('logout').hidden = true;
+  $('login').hidden = false;
+  $('pw').focus();
+}
+
+$('login-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  $('login-err').textContent = '';
+  const r = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: $('pw').value }) });
+  if (!r.ok) { $('login-err').textContent = 'Password errata. Riprova.'; $('pw').select(); return; }
+  $('pw').value = '';
+  start();
+});
+
+$('logout').addEventListener('click', async () => {
+  try { await api('/api/regia/esci', {}); } catch {}
+  showLogin();
+});
+
+async function start() {
+  try { await refresh(); } catch (e) { if (e.message === 'auth') return; }
+  $('login').hidden = true;
+  $('app').hidden = false;
+  $('logout').hidden = false;
+  keepAwake();
+  clearInterval(pollTimer);
+  pollTimer = setInterval(() => refresh().catch(() => {}), 2000);
+}
+
+async function refresh() {
+  if (!cfg) cfg = await (await fetch('/api/config', { cache: 'no-store' })).json();
+  try {
+    status = await api('/api/regia/stato');
+    $('now').classList.remove('offline');
+  } catch (e) {
+    if (e.message !== 'auth') { $('now').textContent = 'Server non raggiungibile. Controlla il PC e il Wi-Fi.'; $('now').classList.add('offline'); }
+    throw e;
+  }
+  render();
+}
+
+function total() { return (status && status.numeroTappe) || cfg.numeroTappe; }
+
+function buildGrid() {
+  const grid = $('grid');
+  grid.innerHTML = '';
+  for (let n = 1; n <= total(); n++) {
+    const b = document.createElement('button');
+    b.className = 'stop';
+    b.dataset.n = n;
+    const num = document.createElement('span'); num.className = 'n'; num.textContent = n;
+    const lbl = document.createElement('span'); lbl.className = 'lbl'; 
+    b.append(num, lbl);
+    b.addEventListener('click', () => play(n, b));
+    b.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      const miss = status && status.mancanti[n];
+      if (miss) alert('Tappa ' + n + ': traccia mancante in ' + miss.join(', '));
+    });
+    grid.append(b);
+  }
+}
+
+function render() {
+  document.title = 'Regia: ' + cfg.titolo;
+  $('title').textContent = cfg.titolo;
+  if ($('grid').children.length !== total()) buildGrid();
+
+  $('count').textContent = status.ospiti;
+  $('count-word').textContent = status.ospiti === 1 ? 'ospite collegato' : 'ospiti collegati';
+  const names = Object.fromEntries(status.lingue.map(l => [l.code, l.nome]));
+  $('per').textContent = Object.entries(status.perLingua).map(([c, k]) => (names[c] || c) + ' ' + k).join(', ');
+
+  const now = $('now');
+  if (status.tappa) {
+    now.textContent = (status.inPausa ? 'In pausa: tappa ' : 'In riproduzione: tappa ') + status.tappa + ' a ' + mmss(status.trascorsi);
+    now.classList.add('live');
+  } else {
+    now.textContent = 'Nessuna tappa in riproduzione';
+    now.classList.remove('live');
+  }
+
+  let anyMissing = false;
+  for (const b of $('grid').children) {
+    const n = Number(b.dataset.n);
+    const title = (status.titoli && status.titoli[n]) || '';
+    const lbl = b.querySelector('.lbl');
+    if (lbl.textContent !== title) lbl.textContent = title;
+    b.classList.toggle('on', status.tappa === n);
+    const miss = status.mancanti[n];
+    let w = b.querySelector('.warn');
+    if (miss && !w) { w = document.createElement('span'); w.className = 'warn'; b.append(w); }
+    if (!miss && w) w.remove();
+    if (w) b.title = 'Traccia mancante in: ' + miss.join(', ');
+    else b.removeAttribute('title');
+    if (miss) anyMissing = true;
+  }
+  $('note').hidden = !anyMissing;
+
+  const pb = $('pause');
+  pb.disabled = !status.tappa;
+  pb.textContent = status.inPausa ? 'Riprendi' : 'Pausa';
+  pb.classList.toggle('paused', !!status.inPausa);
+  fillMonitorLangs();
+}
+
+function mmss(s) { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+
+async function play(n, btn) {
+  if (sending) return;
+  sending = true;
+  btn.classList.add('sending');
+  try { status = await api('/api/regia/play', { tappa: n }); render(); }
+  catch (e) { if (e.message !== 'auth') alert('Comando non inviato. Controlla che il server sia acceso.'); }
+  finally { btn.classList.remove('sending'); sending = false; }
+}
+
+$('pause').addEventListener('click', async () => {
+  try { status = await api('/api/regia/pausa', {}); render(); }
+  catch (e) { if (e.message !== 'auth') alert('Comando non inviato. Controlla che il server sia acceso.'); }
+});
+
+// ---------- ascolto della traccia sul tablet ----------
+// Il tablet segue la visita come un ospite (senza essere contato): l'audio scorre sempre
+// in silenzio per mostrare il punto della traccia; "Ascolta" attiva il suono.
+const mon = $('mon');
+let monLang = null, monEs = null, monSeq = -1, monTappa = null, monOffset = 0, monLangs = [];
+
+function fillMonitorLangs() {
+  const langs = status.lingue;
+  const key = langs.map(l => l.code).join(',');
+  if (key === monLangs.join(',')) return;
+  monLangs = langs.map(l => l.code);
+  const sel = $('mon-lang');
+  sel.innerHTML = '';
+  for (const l of langs) { const o = document.createElement('option'); o.value = l.code; o.textContent = l.nome; sel.append(o); }
+  if (!monLang || !monLangs.includes(monLang)) monLang = monLangs.includes('it') ? 'it' : monLangs[0];
+  if (monLang) { sel.value = monLang; monConnect(); }
+}
+$('mon-lang').addEventListener('change', e => { monLang = e.target.value; monConnect(); });
+
+function monConnect() {
+  if (monEs) monEs.close();
+  monSeq = -1; monTappa = null;
+  monEs = new EventSource('/api/eventi?regia=1&lingua=' + encodeURIComponent(monLang));
+  const on = (name, fn) => monEs.addEventListener(name, e => {
+    const s = JSON.parse(e.data);
+    if (name !== 'stato' && s.seq <= monSeq) return;
+    if (name === 'stato' && s.seq === monSeq) return;
+    monSeq = s.seq; fn(s);
+  });
+  on('stato', s => s.tappa ? monLoad(s.tappa, s.trascorsi, s.inPausa) : monStop());
+  on('play', s => monLoad(s.tappa, 0, false));
+  on('pausa', () => mon.pause());
+  on('riprendi', s => {
+    if (monTappa !== s.tappa) return monLoad(s.tappa, s.trascorsi, false);
+    if (isFinite(mon.duration) && Math.abs(mon.currentTime - s.trascorsi) > 3) mon.currentTime = s.trascorsi;
+    mon.play().catch(() => {});
+  });
+  on('stop', monStop);
+}
+
+function monHas(n) { const l = cfg.lingue.find(x => x.code === monLang); return !!l && l.tappe.includes(n); }
+
+async function monLoad(n, offset, paused) {
+  monTappa = n;
+  try { cfg = await (await fetch('/api/config', { cache: 'no-store' })).json(); } catch {}
+  if (monTappa !== n) return;
+  $('mon-msg').textContent = '';
+  $('mon-bar').style.width = '0';
+  if (!monHas(n)) {
+    mon.removeAttribute('src'); mon.load();
+    $('mon-time').textContent = '--:-- / --:--';
+    $('mon-msg').textContent = 'Tappa ' + n + ': traccia non disponibile in ' + $('mon-lang').selectedOptions[0].textContent;
+    return;
+  }
+  monOffset = offset || 0;
+  mon.src = '/audio/' + encodeURIComponent(monLang) + '/' + n;
+  if (paused) mon.load(); else mon.play().catch(() => {});
+}
+function monStop() {
+  monTappa = null;
+  mon.pause();
+  $('mon-bar').style.width = '0';
+  $('mon-time').textContent = '--:-- / --:--';
+  $('mon-msg').textContent = '';
+}
+mon.addEventListener('loadedmetadata', () => {
+  if (monOffset > 0 && isFinite(mon.duration)) mon.currentTime = Math.min(monOffset, Math.max(0, mon.duration - 0.5));
+  monOffset = 0;
+  monProgress();
+});
+function monProgress() {
+  if (!monTappa || !isFinite(mon.duration) || !mon.duration) return;
+  $('mon-bar').style.width = (100 * Math.min(1, mon.currentTime / mon.duration)) + '%';
+  $('mon-time').textContent = mmss(mon.currentTime) + ' / ' + mmss(mon.duration);
+}
+mon.addEventListener('timeupdate', monProgress);
+mon.addEventListener('ended', monProgress);
+
+$('listen').addEventListener('click', () => {
+  const onNow = $('listen').getAttribute('aria-pressed') !== 'true';
+  mon.muted = !onNow;
+  $('listen').setAttribute('aria-pressed', String(onNow));
+  $('listen').textContent = onNow ? 'Audio attivo' : 'Ascolta la traccia';
+  if (onNow && monTappa && mon.paused && !(status && status.inPausa)) mon.play().catch(() => {});
+});
+
+$('halt').addEventListener('click', async () => {
+  try { status = await api('/api/regia/stop', {}); render(); }
+  catch (e) { if (e.message !== 'auth') alert('Comando non inviato. Controlla che il server sia acceso.'); }
+});
+
+async function keepAwake() {
+  try {
+    if ('wakeLock' in navigator && document.visibilityState === 'visible' && !wakeLock) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    }
+  } catch { wakeLock = null; }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && !$('app').hidden) { keepAwake(); refresh().catch(() => {}); }
+});
+
+start();
+</script>
+</body>
+</html>

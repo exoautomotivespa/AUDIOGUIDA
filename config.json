@@ -1,0 +1,16 @@
+{
+  "titolo": "Visita al laboratorio",
+  "colorePrincipale": "#E4002B",
+  "passwordRegia": "VISITAEXO",
+  "porta": 3000,
+  "numeroTappe": "auto",
+  "lingue": {
+    "it": "Italiano",
+    "en": "English",
+    "de": "Deutsch",
+    "fr": "Français",
+    "es": "Español",
+    "pt": "Português"
+  },
+  "nomiTappe": {}
+}
